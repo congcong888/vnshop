@@ -37,15 +37,15 @@
               <ul>
                 <li v-for="(item,index) in list" :key="index">
                   <div class="pic">
-                    <a href="#"><img :src="'/static/img/'+item.productImage" alt=""></a>
+                    <!-- <a href="#"><img :src="'/static/img/'+item.productImage" alt=""></a> -->
                     <!-- 懒加载 -->
-                    <!-- <a href="#"><img v-lazy="'/static/img/'+item.productImage" alt=""></a> -->
+                    <a href="#"><img v-lazy="'/static/img/'+item.productImage" alt=""></a>
                   </div>
                   <div class="main">
                     <div class="name">{{item.productName}}</div>
                     <div class="price">{{item.salePrice}}</div>
                     <div class="btn-area">
-                      <a href="javascript:;" class="btn btn--m">加入购物车</a>
+                      <a href="javascript:;" class="btn btn--m" @click="addCart(item.productId)">加入购物车</a>
                     </div>
                   </div>
                 </li>
@@ -60,15 +60,36 @@
       </div>
     </div>
 
-    <Footer/>
+    <Foot/>
+
+    <!-- 在未登录的情况下 -->
+    <modal :mdShow="mdShow">
+        <p slot="message">请先登陆，否则无法加入购物车</p>
+        <div slot="btnGroup">
+            <a href="javascipt:;" class="btn-login" @click="mdShow = false">
+                关闭</a>
+        </div>
+    </modal>
+
+    <!-- 在登录的情况下 -->
+    <modal :mdShow="mdShowCart">
+        <p slot="message">加入购物车成功</p>
+        <div slot="btnGroup">
+            <a href="javascipt:;" class="btn--m" @click="mdShow = false">
+                继续购物</a>
+            <router-link class="btn btn-m" to="/cart">
+            查看购物车</router-link>
+        </div>
+    </modal>
   </div>
 </template>
 
 <script>
 import HeaderNav from '@/components/Head'
 import NavBread from '@/components/NavBread'
-import Footer from '@/components/Footer'
-import axios from 'axios'
+import Foot from '@/components/Foot'
+import Modal from '@/components/Modal'
+// import axios from 'axios'
 
 export default {
   data() {
@@ -97,13 +118,16 @@ export default {
       busy: true,
       page: 1,
       pagesize: 4,
-      flag: false
+      flag: false,
+      mdShow:false,
+      mdShowCart:false,
     }
   },
   components: {
     HeaderNav,
     NavBread,
-    Footer
+    Foot,
+    Modal
   },
   created() {
     // this.getGoodsList();
@@ -111,7 +135,7 @@ export default {
   },
   methods: {
     getGoodsList() {
-      axios.get('http://easy-mock.com/mock/59664d4d58618039284c7710/example/goods/list').then(res => {
+      this.$http.get('http://easy-mock.com/mock/59664d4d58618039284c7710/example/goods/list').then(res => {
         // console.log(res);
         this.list = res.data.data;
         // console.log(this.list);
@@ -125,7 +149,7 @@ export default {
         page: this.page,
         pagesize: this.pagesize
       };
-      axios.get('/goods/list', { params: param }).then(result => {
+      this.$http.get('/goods/list', { params: param }).then(result => {
         // this.list = res.data.result;
         // console.log(this.list);
         let res = result.data;
@@ -138,7 +162,7 @@ export default {
           } else {
             this.busy = false;
           }
-        }else{
+        } else {
           // 第一次请求
           this.list = res.result;
           this.busy = false;
@@ -156,11 +180,25 @@ export default {
     },
     loadMore: function() {
       this.busy = true;
- 
+
       setTimeout(() => {
         this.page++;
         this.getGoods(true);
       }, 1000);
+    },
+    addCart: function(productId) {
+      this.$http.post("/goods/addCart", {
+        productId: productId
+      }).then((result) => {
+        let res = result.data;
+        if (res.status == 1) {
+          // alert('加入购物车失败！')
+          this.mdShow = true;
+        } else {
+          // alert('加入购物车成功！')
+          this.mdShowCart = true;
+        }
+      })
     }
   }
 }
